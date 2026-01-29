@@ -1,7 +1,8 @@
 ﻿#include "raylib.h"
 
 #include <cmath>
-#include <iostream>
+#include <cstdlib>
+#include <string>
 #include <vector>
 
 #define WNDW_W 800
@@ -9,10 +10,10 @@
 
 #define SEP 200
 #define AMP 50
-#define FORATDIV2 50
+#define FORATDIV2 64
 #define VEL 3
 
-#define MIDAOCELL 50
+#define MIDAOCELL 64
 
 using namespace std;
 
@@ -25,6 +26,8 @@ int main() {
     int posicio = WNDW_W;
     bool stop = false;
     int ocell_vel = 3;
+    unsigned int frame = 0;
+    unsigned int record = 0;
 
     Vector2 posicioOcell = {75, 0};
 
@@ -32,9 +35,15 @@ int main() {
     SetTargetFPS(60);
 
     Texture2D tex = LoadTexture("./assets/Nau.png");
+    Texture2D flamaTex = LoadTexture("./assets/Flama.png");
+
+    if (FileExists("./saves/last-record.txt")) {
+        int size;
+        record =
+            *((unsigned int *)LoadFileData("./saves/last-record.txt", &size));
+    }
 
     std::vector<Obstacle> obstacles;
-    std::vector<Vector2> bales;
 
     for (int i = 0; i < 20; i++) {
         Obstacle b;
@@ -45,23 +54,36 @@ int main() {
     }
 
     while (!WindowShouldClose() and stop != true) {
+
+        std::string text =
+            "Time: " + to_string(frame) + " / " + to_string(record);
+
+        DrawText(text.c_str(), 5, 5, 24, WHITE);
+
+        frame++;
+
         BeginDrawing();
         ClearBackground(BLACK);
 
-        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyDown(KEY_SPACE)) {
             ocell_vel = -3;
-        }
-
-        if (IsKeyPressed(KEY_SPACE)) {
-            bales.push_back(posicioOcell);
         }
 
         posicioOcell.y += ocell_vel;
 
         Rectangle ocellRect = {posicioOcell.x, posicioOcell.y, MIDAOCELL,
-                               MIDAOCELL / 2.0};
+                               MIDAOCELL};
 
-        DrawTextureV(tex, posicioOcell, WHITE);
+        DrawTextureEx(tex, posicioOcell, 0, 2, WHITE);
+
+        Vector2 posicioFlama = posicioOcell;
+        posicioFlama.x -= MIDAOCELL;
+
+        Rectangle flamaRec{(float)(frame % 4) * 32, 0, 32, 32};
+
+        DrawTexturePro(flamaTex, flamaRec,
+                       {posicioFlama.x, posicioFlama.y, 64, 64}, {0, 0}, 0,
+                       WHITE);
 
         for (int i = 0; i < obstacles.size(); i++) {
             Rectangle obstRect;
@@ -85,16 +107,6 @@ int main() {
             }
         }
 
-        for (int i = 0; i < bales.size(); i++) {
-            Vector2 &bala = bales[i];
-            DrawRectangleV(bala, {5, 2}, RED);
-            bala.x += VEL * 2;
-            if (bala.x > WNDW_W) {
-                bales[i] = bales[bales.size() - 1];
-                bales.pop_back();
-            }
-        }
-
         posicio -= VEL;
 
         if (ocell_vel < 3) {
@@ -103,5 +115,10 @@ int main() {
 
         EndDrawing();
     }
+
+    if (frame > record) {
+        SaveFileData("./saves/last-record.txt", &frame, sizeof(unsigned int));
+    }
+
     return 0;
 }
